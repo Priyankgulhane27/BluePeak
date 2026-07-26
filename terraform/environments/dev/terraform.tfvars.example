@@ -1,0 +1,16 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored - never commit real account details/images.
+
+aws_region      = "us-east-1"
+environment     = "dev"
+
+# Produced by scripts/build_and_push.sh after it creates the ECR repo and pushes the image
+container_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/bluepeak-counter:latest"
+
+# Optional: set once you have a Route53 domain + validated ACM cert for HTTPS
+certificate_arn = null
+
+# Optional: get CloudWatch alarm emails
+alert_email = "you@example.com"
+
+single_nat_gateway = true   # set false for prod-style HA egress

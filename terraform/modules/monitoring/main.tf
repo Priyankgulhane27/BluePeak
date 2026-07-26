@@ -85,8 +85,8 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
   period              = 60
   statistic           = "Average"
   threshold           = 80
-  alarm_description   = "Aurora cluster CPU sustained high"
-  dimensions          = { DBClusterIdentifier = var.rds_cluster_id }
+  alarm_description   = "RDS instance CPU sustained high"
+  dimensions          = { DBInstanceIdentifier = var.rds_instance_id }
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
 
@@ -100,7 +100,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_connections_high" {
   statistic           = "Average"
   threshold           = var.max_db_connections_threshold
   alarm_description   = "Approaching DB connection limits - risk of connection exhaustion"
-  dimensions          = { DBClusterIdentifier = var.rds_cluster_id }
+  dimensions          = { DBInstanceIdentifier = var.rds_instance_id }
   alarm_actions       = [aws_sns_topic.alerts.arn]
 }
 
@@ -146,10 +146,10 @@ resource "aws_cloudwatch_dashboard" "this" {
       {
         type = "metric", x = 12, y = 6, width = 12, height = 6,
         properties = {
-          title   = "Aurora - CPU / Connections"
+          title   = "RDS - CPU / Connections"
           metrics = [
-            ["AWS/RDS", "CPUUtilization", "DBClusterIdentifier", var.rds_cluster_id],
-            ["AWS/RDS", "DatabaseConnections", "DBClusterIdentifier", var.rds_cluster_id]
+            ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", var.rds_instance_id],
+            ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", var.rds_instance_id]
           ]
           period = 60
           stat   = "Average"

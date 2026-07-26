@@ -1,7 +1,23 @@
 ############################################
 # RDS module - data tier
-# Aurora MySQL, Serverless v2 for automatic
-# capacity scaling with demand; Multi-AZ for HA
+# Standard (non-Aurora) RDS PostgreSQL, Single-AZ
+# by default, in the private DB subnets.
+#
+# NOTE - two design pivots are documented here,
+# both driven by deploying on an AWS Free Plan
+# account (see docs/ARCHITECTURE.md for the full
+# rationale):
+#   1. Aurora MySQL -> Aurora PostgreSQL (Free Plan
+#      only permits aurora-postgresql for Aurora)
+#   2. Aurora PostgreSQL Serverless v2 -> standard
+#      RDS PostgreSQL (Free Plan forces Aurora into
+#      "express configuration", which cannot be
+#      placed inside a customer VPC/private subnet
+#      at all - incompatible with this assignment's
+#      private-network requirement). Standard RDS
+#      has no such restriction: full VPC placement,
+#      custom KMS key, and master username/password
+#      all work exactly as originally designed.
 ############################################
 
 resource "aws_db_subnet_group" "this" {
@@ -28,7 +44,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
     username = var.master_username
     password = random_password.master.result
     dbname   = var.database_name
-    host     = aws_rds_cluster.this.endpoint
+    host     = aws_db_instance.this.address
     port     = 5432
   })
 }
@@ -39,56 +55,49 @@ resource "aws_kms_key" "rds" {
   tags                = var.tags
 }
 
-resource "aws_rds_cluster" "this" {
-  cluster_identifier      = "${var.name_prefix}-aurora"
-  engine                  = "aurora-postgresql"
-  engine_mode             = "provisioned"
-  engine_version          = var.engine_version
-  database_name           = var.database_name
-  master_username         = var.master_username
-  master_password         = random_password.master.result
-  db_subnet_group_name    = aws_db_subnet_group.this.name
-  vpc_security_group_ids  = [var.db_sg_id]
+resource "aws_db_instance" "this" {
+  identifier     = "${var.name_prefix}-postgres"
+  engine         = "postgres"
+  engine_version = var.engine_version
+  instance_class = var.instance_class
 
-  storage_encrypted              = true
-  kms_key_id                     = aws_kms_key.rds.arn
-  backup_retention_period         = var.backup_retention_days
-  preferred_backup_window          = "03:00-04:00"
-  preferred_maintenance_window      = "sun:04:30-sun:05:30"
-  deletion_protection              = var.deletion_protection
-  skip_final_snapshot              = !var.deletion_protection
-  final_snapshot_identifier        = var.deletion_protection ? "${var.name_prefix}-final-snapshot" : null
-  copy_tags_to_snapshot            = true
-  apply_immediately                = var.apply_immediately
-  enabled_cloudwatch_logs_exports  = ["postgresql"]
+  db_name  = var.database_name
+  username = var.master_username
+  password = random_password.master.result
+  port     = 5432
 
-  serverlessv2_scaling_configuration {
-    min_capacity = var.min_acu
-    max_capacity = var.max_acu
-  }
+  db_subnet_group_name   = aws_db_subnet_group.this.name
+  vpc_security_group_ids = [var.db_sg_id]
+  publicly_accessible    = false
 
-  tags = var.tags
-}
+  allocated_storage     = var.allocated_storage
+  max_allocated_storage = var.max_allocated_storage # enables storage autoscaling as data grows
+  storage_type          = "gp2"                     # Free Tier covers gp2, not gp3
+  storage_encrypted     = true
+  kms_key_id            = aws_kms_key.rds.arn
 
-# Two instances across AZs -> HA / automated failover for a Serverless v2 cluster
-resource "aws_rds_cluster_instance" "this" {
-  count                = var.instance_count
-  identifier           = "${var.name_prefix}-aurora-${count.index}"
-  cluster_identifier   = aws_rds_cluster.this.id
-  instance_class       = "db.serverless"
-  engine               = aws_rds_cluster.this.engine
-  engine_version       = aws_rds_cluster.this.engine_version
-  db_subnet_group_name = aws_db_subnet_group.this.name
+  multi_az = var.multi_az # Free Tier only covers Single-AZ; set true once off Free Plan for real HA
 
-  performance_insights_enabled = true
-  monitoring_interval          = 60
-  monitoring_role_arn          = aws_iam_role.rds_monitoring.arn
+  backup_retention_period      = var.backup_retention_days
+  backup_window                = "03:00-04:00"
+  maintenance_window            = "sun:04:30-sun:05:30"
+  deletion_protection           = var.deletion_protection
+  skip_final_snapshot           = !var.deletion_protection
+  final_snapshot_identifier     = var.deletion_protection ? "${var.name_prefix}-final-snapshot" : null
+  copy_tags_to_snapshot         = true
+  apply_immediately             = var.apply_immediately
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
+
+  performance_insights_enabled = var.performance_insights_enabled
+  monitoring_interval          = var.monitoring_interval
+  monitoring_role_arn          = var.monitoring_interval > 0 ? aws_iam_role.rds_monitoring[0].arn : null
 
   tags = var.tags
 }
 
 resource "aws_iam_role" "rds_monitoring" {
-  name = "${var.name_prefix}-rds-monitoring-role"
+  count = var.monitoring_interval > 0 ? 1 : 0
+  name  = "${var.name_prefix}-rds-monitoring-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -101,6 +110,7 @@ resource "aws_iam_role" "rds_monitoring" {
 }
 
 resource "aws_iam_role_policy_attachment" "rds_monitoring" {
-  role       = aws_iam_role.rds_monitoring.name
+  count      = var.monitoring_interval > 0 ? 1 : 0
+  role       = aws_iam_role.rds_monitoring[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }

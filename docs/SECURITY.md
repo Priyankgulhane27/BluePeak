@@ -4,7 +4,7 @@ A finance company's workloads warrant defense-in-depth. This is what's
 implemented, layer by layer.
 
 ## Network layer
-- Only the ALB sits in public subnets; ECS tasks and Aurora are in private
+- Only the ALB sits in public subnets; ECS tasks and RDS are in private
   subnets with no direct route to the internet.
 - DB subnets have **no** route to an Internet Gateway or NAT Gateway at all —
   a compromised app-tier task cannot use the database subnet as an egress path.
@@ -32,7 +32,7 @@ implemented, layer by layer.
 - RDS enhanced monitoring and Performance Insights use their own scoped IAM role.
 
 ## Data layer
-- Aurora storage is encrypted at rest via a dedicated customer-managed KMS key
+- RDS storage is encrypted at rest via a dedicated customer-managed KMS key
   with rotation enabled.
 - Automated backups (7-day retention by default), a defined backup window,
   and `deletion_protection` turned on automatically for any environment named
@@ -60,6 +60,6 @@ implemented, layer by layer.
   interface VPC endpoints would remove that NAT dependency for AWS API calls
   and reduce data-exfiltration surface further — recommended as a fast-follow
   since it's a pure networking/IAM addition with no app changes.
-- **Cross-account backup/DR** (e.g., replicating Aurora snapshots to a second
+- **Cross-account backup/DR** (e.g., replicating RDS snapshots to a second
   AWS account) is out of scope here but would be a reasonable ask for a
   finance company's DR posture.

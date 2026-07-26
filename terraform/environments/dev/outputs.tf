@@ -7,8 +7,8 @@ output "alb_dns_name" {
   value = module.alb.alb_dns_name
 }
 
-output "rds_cluster_endpoint" {
-  value     = module.rds.cluster_endpoint
+output "rds_instance_endpoint" {
+  value     = module.rds.instance_endpoint
   sensitive = true
 }
 

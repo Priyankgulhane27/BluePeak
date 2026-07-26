@@ -22,9 +22,8 @@ flowchart TB
             AAS[Application Auto Scaling<br/>CPU + ALB RequestCountPerTarget]
         end
 
-        subgraph DataTier["Private DB Subnets - Aurora PostgreSQL Serverless v2"]
-            RDSW[(Writer Instance AZ-a)]
-            RDSR[(Reader Instance AZ-b)]
+        subgraph DataTier["Private DB Subnets - RDS PostgreSQL"]
+            RDS[(RDS PostgreSQL Instance<br/>Single-AZ on Free Plan)]
         end
     end
 
@@ -32,9 +31,8 @@ flowchart TB
     ALB --> ECS2
     ECS1 --> NAT1
     ECS2 --> NAT2
-    ECS1 --> RDSW
-    ECS2 --> RDSW
-    RDSW -.async replication.-> RDSR
+    ECS1 --> RDS
+    ECS2 --> RDS
     AAS -.scales.-> ECS1
     AAS -.scales.-> ECS2
 
@@ -43,7 +41,7 @@ flowchart TB
     ECS1 -. logs .-> CW[CloudWatch Logs/Metrics]
     ECS2 -. logs .-> CW
     ALB -. logs .-> CW
-    RDSW -. metrics .-> CW
+    RDS -. metrics .-> CW
     CW --> SNS[SNS Alerts -> Email/Slack]
 ```
 
@@ -53,4 +51,12 @@ flowchart TB
 |---|---|---|---|
 | Presentation | Static assets served by app container, browser | N/A (client-side) | Direct via ALB |
 | Application | ECS Fargate service (Node.js/Express), Application Auto Scaling | Private-app subnets, 2 AZs | Only via ALB; egress via NAT for ECR/Secrets Manager/CloudWatch |
-| Data | Aurora PostgreSQL Serverless v2, Multi-AZ | Private-db subnets, 2 AZs | None — no route to internet at all |
+| Data | RDS PostgreSQL, Single-AZ by default (`multi_az` togglable) | Private-db subnets | None — no route to internet at all |
+
+> **Note:** the data tier was originally designed as Aurora PostgreSQL
+> Serverless v2 with a writer + reader across 2 AZs. It was changed to a
+> standard RDS PostgreSQL instance because AWS Free Plan accounts can only
+> create Aurora clusters via an "express configuration" path that cannot be
+> placed inside a customer VPC — incompatible with this project's private-
+> network requirement. See `docs/ARCHITECTURE.md` section 4a for the full
+> explanation and how to restore Multi-AZ/elastic scaling off the Free Plan.

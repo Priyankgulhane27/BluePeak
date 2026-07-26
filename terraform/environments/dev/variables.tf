@@ -45,19 +45,16 @@ variable "database_name" {
   default = "bluepeak"
 }
 
-variable "db_min_acu" {
-  type    = number
-  default = 0.5
+variable "db_instance_class" {
+  type        = string
+  default     = "db.t3.micro"
+  description = "AWS Free Tier covers 750 hrs/month of db.t3.micro or db.t4g.micro Single-AZ"
 }
 
-variable "db_max_acu" {
-  type    = number
-  default = 4
-}
-
-variable "db_instance_count" {
-  type    = number
-  default = 2
+variable "db_multi_az" {
+  type        = bool
+  default     = false
+  description = "AWS Free Tier does not cover Multi-AZ. Set true once off the Free Plan."
 }
 
 variable "ecs_desired_count" {

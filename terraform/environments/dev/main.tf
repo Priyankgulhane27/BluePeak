@@ -34,9 +34,8 @@ module "rds" {
   db_subnet_ids        = module.network.db_subnet_ids
   db_sg_id             = module.security.db_sg_id
   database_name        = var.database_name
-  min_acu              = var.db_min_acu
-  max_acu              = var.db_max_acu
-  instance_count       = var.db_instance_count
+  instance_class       = var.db_instance_class
+  multi_az             = var.db_multi_az
   deletion_protection  = var.environment == "prod"
   tags                 = local.common_tags
 }
@@ -91,6 +90,6 @@ module "monitoring" {
   target_group_arn_suffix   = module.alb.target_group_arn_suffix
   ecs_cluster_name          = module.ecs.cluster_name
   ecs_service_name          = module.ecs.service_name
-  rds_cluster_id            = module.rds.cluster_id
+  rds_instance_id           = module.rds.instance_id
   tags                      = local.common_tags
 }

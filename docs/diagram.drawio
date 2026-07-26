@@ -54,14 +54,11 @@
         </mxCell>
 
         <!-- Data tier -->
-        <mxCell id="dbTier" value="Private DB Subnets (2 AZs) - Aurora PostgreSQL Serverless v2" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#e1d5e7;" vertex="1" parent="1">
+        <mxCell id="dbTier" value="Private DB Subnets - RDS PostgreSQL" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#e1d5e7;" vertex="1" parent="1">
           <mxGeometry x="160" y="650" width="1280" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="rdsW" value="Aurora Writer\nInstance (AZ-a)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="600" y="695" width="180" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="rdsR" value="Aurora Reader\nInstance (AZ-b)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="820" y="695" width="180" height="60" as="geometry" />
+        <mxCell id="rdsW" value="RDS PostgreSQL\nInstance (Single-AZ on Free Plan)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="700" y="695" width="220" height="60" as="geometry" />
         </mxCell>
 
         <!-- Supporting services -->
@@ -89,7 +86,6 @@
         <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="alb" target="ecs2"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="ecs1" target="rdsW"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="ecs2" target="rdsW"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;" edge="1" parent="1" source="rdsW" target="rdsR"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="ecs1" target="nat1"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="ecs2" target="nat2"><mxGeometry relative="1" as="geometry" /></mxCell>
       </root>

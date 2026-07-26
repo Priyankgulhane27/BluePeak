@@ -2,14 +2,14 @@
 
 A private, 3-tier, highly available, auto-scaling AWS architecture,
 provisioned entirely with Terraform, hosting an Increment/Decrement counter
-app whose count is persisted in a managed, Multi-AZ Aurora PostgreSQL database.
+app whose count is persisted in a managed RDS PostgreSQL database.
 
 ## Repository layout
 
 ```
 .
 ├── app/                      # 3-tier counter app (Express + static frontend)
-│   ├── server.js             # Application tier: serves frontend, exposes /api/*, talks to Aurora
+│   ├── server.js             # Application tier: serves frontend, exposes /api/*, talks to RDS
 │   ├── public/                # Presentation tier: HTML/CSS/JS counter UI
 │   └── Dockerfile
 ├── terraform/
@@ -20,7 +20,7 @@ app whose count is persisted in a managed, Multi-AZ Aurora PostgreSQL database.
 │       ├── security/           # Security group chain (internet -> ALB -> app -> db)
 │       ├── alb/                 # Internet-facing ALB, target group, listeners
 │       ├── ecs/                 # Fargate cluster/service/task + Application Auto Scaling
-│       ├── rds/                 # Aurora PostgreSQL Serverless v2, Multi-AZ, Secrets Manager
+│       ├── rds/                 # RDS PostgreSQL, Secrets Manager
 │       ├── waf/                 # AWS managed WAF rules on the ALB
 │       └── monitoring/          # SNS + CloudWatch alarms/dashboard
 ├── scripts/
@@ -59,19 +59,21 @@ terraform output app_url
 ## Architecture at a glance
 
 Internet → Route 53 → WAF → ALB (public subnets) → ECS Fargate service
-(private app subnets, 2 AZs, auto-scales on CPU + request count) → Aurora
-PostgreSQL Serverless v2 (private DB subnets, Multi-AZ, no internet route at all).
+(private app subnets, 2 AZs, auto-scales on CPU + request count) → RDS
+PostgreSQL (private DB subnets, no internet route at all).
 
 See [`docs/diagram.md`](docs/diagram.md) for the full diagram and
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for why each piece was chosen.
 
 ## Design highlights
 
-- **Genuinely 3-tier**: the counter app's state is persisted in Aurora via a
+- **Genuinely 3-tier**: the counter app's state is persisted in RDS via a
   small API layer, not just a decorative unused database.
 - **Scales automatically with business-hours demand**: ECS Application Auto
-  Scaling (CPU + ALB request count) and Aurora Serverless v2 (ACU-based)
-  both scale independently of each other.
+  Scaling handles the app tier (CPU + ALB request count); the RDS instance
+  autoscales storage as data grows (`max_allocated_storage`), though compute
+  is fixed-size while on the AWS Free Plan — see `docs/ARCHITECTURE.md` for
+  the trade-off and how to restore full elastic DB scaling off Free Plan.
 - **Least-privilege networking**: DB subnets have zero internet route;
   security groups only allow traffic from the tier directly above them.
 - **No hardcoded secrets**: DB password is Terraform-generated, lives only in

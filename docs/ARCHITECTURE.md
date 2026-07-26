@@ -79,21 +79,52 @@ engine without touching networking.
   with minimal changes since modules already take all environment-specific
   values as inputs.
 
-## 4a. Engine choice: Aurora PostgreSQL (not MySQL)
+## 4a. Data tier evolution: two Free-Plan-driven pivots
 
-The original design used Aurora MySQL. During deployment testing on an AWS
-account under the newer **Free Plan**, `CreateDBCluster` rejected `aurora-mysql`
-with `FreeTierRestrictionError`, since Free Plan accounts only permit
-`aurora-postgresql` for Aurora. The stack was switched to Aurora PostgreSQL
-Serverless v2 to deploy cleanly on such accounts. This is a lateral move, not
-a downgrade — PostgreSQL is equally capable for this workload (a single
-counter table), Serverless v2 scaling and Multi-AZ HA work identically on
-both engines, and the same architectural reasoning in section 3 (Serverless v2
-over standard provisioned) still applies. The app tier's driver and SQL
-(parameterized queries, upsert syntax) were updated accordingly; see
-`app/server.js`. On a standard-plan or existing production AWS account with no
-such restriction, Aurora MySQL remains an equally valid choice — the module's
-`engine`/`engine_version` values are the only lines that would need to change.
+The data tier went through two deliberate revisions while deploying on an
+AWS account under the newer **Free Plan** (a credit-based account tier AWS
+introduced for new signups). Both are documented here rather than hidden,
+since they materially affect the architecture and are worth being able to
+explain.
+
+**Pivot 1 — Aurora MySQL → Aurora PostgreSQL.** The original design used
+Aurora MySQL. `CreateDBCluster` rejected `aurora-mysql` with
+`FreeTierRestrictionError`, since Free Plan accounts only permit
+`aurora-postgresql` for Aurora at all. This was a lateral move, not a
+downgrade — PostgreSQL is equally capable for this workload.
+
+**Pivot 2 — Aurora PostgreSQL Serverless v2 → standard RDS PostgreSQL.**
+After switching to Aurora PostgreSQL, cluster creation still failed with
+`FreeTierRestrictionError: ... you need to set WithExpressConfiguration`.
+Investigating this surfaced a hard constraint: Free Plan accounts are
+required to create Aurora clusters via AWS's "express configuration" path,
+and that path **cannot be placed inside a customer VPC at all** — it lives
+outside customer-managed networking entirely, uses only AWS-managed KMS
+keys, and supports IAM-only authentication (no master username/password).
+That directly conflicts with this assignment's core private-network
+requirement, so rather than compromise the network-isolation design, the
+data tier was switched to a **standard (non-Aurora) RDS PostgreSQL
+instance**, which has never been subject to this restriction: full private
+VPC/subnet placement, a customer-managed KMS key, and master username/
+password all work exactly as originally designed.
+
+**What this costs, architecturally:** the "auto-scaling capacity with
+demand" story for the database tier is weaker than the original Aurora
+Serverless v2 design — compute is now a fixed instance size
+(`db.t3.micro` by default) rather than elastic ACUs, and Multi-AZ is off by
+default (`multi_az = false`) since the AWS Free Tier does not cover
+Multi-AZ. Storage autoscaling (`max_allocated_storage`) is retained, so the
+tier still grows with data volume even though compute doesn't grow with
+request volume. Enhanced Monitoring and Performance Insights are also off
+by default (`monitoring_interval = 0`, `performance_insights_enabled =
+false`) as a further Free Plan safety margin, since these are billed add-on
+features. **Every one of these is a variable, not a hardcoded limitation** —
+flipping `multi_az`, `instance_class`, `monitoring_interval`, and
+`performance_insights_enabled` restores the original HA/observability
+posture the moment this runs on a standard-plan or production AWS account.
+The app tier's driver and SQL were already PostgreSQL-compatible from
+Pivot 1 and needed no further changes, since standard RDS and Aurora
+PostgreSQL are wire-protocol identical.
 
 ## 5. Known simplifications (documented, not hidden)
 

@@ -11,7 +11,7 @@ variable "master_username" {
 }
 variable "engine_version" {
   type    = string
-  default = "8.0.mysql_aurora.3.07.1"
+  default = "16.6"
 }
 variable "min_acu" {
   type        = number
@@ -30,7 +30,7 @@ variable "instance_count" {
 }
 variable "backup_retention_days" {
   type    = number
-  default = 7
+  default = 1
 }
 variable "deletion_protection" {
   type    = bool

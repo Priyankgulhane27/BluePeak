@@ -22,7 +22,7 @@ flowchart TB
             AAS[Application Auto Scaling<br/>CPU + ALB RequestCountPerTarget]
         end
 
-        subgraph DataTier["Private DB Subnets - Aurora MySQL Serverless v2"]
+        subgraph DataTier["Private DB Subnets - Aurora PostgreSQL Serverless v2"]
             RDSW[(Writer Instance AZ-a)]
             RDSR[(Reader Instance AZ-b)]
         end
@@ -53,4 +53,4 @@ flowchart TB
 |---|---|---|---|
 | Presentation | Static assets served by app container, browser | N/A (client-side) | Direct via ALB |
 | Application | ECS Fargate service (Node.js/Express), Application Auto Scaling | Private-app subnets, 2 AZs | Only via ALB; egress via NAT for ECR/Secrets Manager/CloudWatch |
-| Data | Aurora MySQL Serverless v2, Multi-AZ | Private-db subnets, 2 AZs | None — no route to internet at all |
+| Data | Aurora PostgreSQL Serverless v2, Multi-AZ | Private-db subnets, 2 AZs | None — no route to internet at all |

@@ -16,7 +16,7 @@ for the editable version.
 | Private network, 3-tier design | VPC with public / private-app / private-db subnets across 2 AZs (`az_count` is configurable up to 3) |
 | Internet accessible | Internet-facing ALB in public subnets is the only ingress path; WAF sits in front of it |
 | High availability & scalability | ECS Fargate service spread across AZs behind the ALB; Aurora Multi-AZ cluster with a dedicated writer + reader |
-| Managed DB, HA + scalable | Amazon Aurora MySQL, Serverless v2 engine mode — capacity scales automatically (0.5–4 ACUs by default) and failover is automated |
+| Managed DB, HA + scalable | Amazon Aurora PostgreSQL, Serverless v2 engine mode — capacity scales automatically (0.5–4 ACUs by default) and failover is automated |
 | Traffic fluctuates during business hours, must autoscale | Application Auto Scaling on the ECS service using two target-tracking policies: average CPU utilization and ALB `RequestCountPerTarget` |
 | Recommend operational/business metrics | See [`MONITORING.md`](./MONITORING.md) |
 
@@ -78,6 +78,22 @@ engine without touching networking.
   with different `.tfvars`, or converted to Terragrunt `terragrunt.hcl` files
   with minimal changes since modules already take all environment-specific
   values as inputs.
+
+## 4a. Engine choice: Aurora PostgreSQL (not MySQL)
+
+The original design used Aurora MySQL. During deployment testing on an AWS
+account under the newer **Free Plan**, `CreateDBCluster` rejected `aurora-mysql`
+with `FreeTierRestrictionError`, since Free Plan accounts only permit
+`aurora-postgresql` for Aurora. The stack was switched to Aurora PostgreSQL
+Serverless v2 to deploy cleanly on such accounts. This is a lateral move, not
+a downgrade — PostgreSQL is equally capable for this workload (a single
+counter table), Serverless v2 scaling and Multi-AZ HA work identically on
+both engines, and the same architectural reasoning in section 3 (Serverless v2
+over standard provisioned) still applies. The app tier's driver and SQL
+(parameterized queries, upsert syntax) were updated accordingly; see
+`app/server.js`. On a standard-plan or existing production AWS account with no
+such restriction, Aurora MySQL remains an equally valid choice — the module's
+`engine`/`engine_version` values are the only lines that would need to change.
 
 ## 5. Known simplifications (documented, not hidden)
 

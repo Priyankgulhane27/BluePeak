@@ -2,7 +2,7 @@
 
 A private, 3-tier, highly available, auto-scaling AWS architecture,
 provisioned entirely with Terraform, hosting an Increment/Decrement counter
-app whose count is persisted in a managed, Multi-AZ Aurora MySQL database.
+app whose count is persisted in a managed, Multi-AZ Aurora PostgreSQL database.
 
 ## Repository layout
 
@@ -20,7 +20,7 @@ app whose count is persisted in a managed, Multi-AZ Aurora MySQL database.
 │       ├── security/           # Security group chain (internet -> ALB -> app -> db)
 │       ├── alb/                 # Internet-facing ALB, target group, listeners
 │       ├── ecs/                 # Fargate cluster/service/task + Application Auto Scaling
-│       ├── rds/                 # Aurora MySQL Serverless v2, Multi-AZ, Secrets Manager
+│       ├── rds/                 # Aurora PostgreSQL Serverless v2, Multi-AZ, Secrets Manager
 │       ├── waf/                 # AWS managed WAF rules on the ALB
 │       └── monitoring/          # SNS + CloudWatch alarms/dashboard
 ├── scripts/
@@ -60,7 +60,7 @@ terraform output app_url
 
 Internet → Route 53 → WAF → ALB (public subnets) → ECS Fargate service
 (private app subnets, 2 AZs, auto-scales on CPU + request count) → Aurora
-MySQL Serverless v2 (private DB subnets, Multi-AZ, no internet route at all).
+PostgreSQL Serverless v2 (private DB subnets, Multi-AZ, no internet route at all).
 
 See [`docs/diagram.md`](docs/diagram.md) for the full diagram and
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for why each piece was chosen.

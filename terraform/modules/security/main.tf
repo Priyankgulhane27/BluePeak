@@ -64,7 +64,7 @@ resource "aws_security_group" "db" {
   vpc_id      = var.vpc_id
 
   ingress {
-    description     = "MySQL/Aurora from app tier only"
+    description     = "PostgreSQL/Aurora from app tier only"
     from_port       = var.db_port
     to_port         = var.db_port
     protocol        = "tcp"

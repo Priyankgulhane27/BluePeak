@@ -2,13 +2,13 @@
  * BluePeak Counter App - Application Tier
  *
  * Serves the static presentation tier (public/) and exposes a small REST API
- * that persists the counter value in the data tier (Aurora MySQL).
+ * that persists the counter value in the data tier (Aurora PostgreSQL).
  *
  * DB credentials are pulled from AWS Secrets Manager at startup (never from
  * plaintext env vars in production), falling back to env vars for local dev.
  */
 const express = require("express");
-const mysql = require("mysql2/promise");
+const { Pool } = require("pg");
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 
 const app = express();
@@ -28,26 +28,28 @@ async function loadDbCredentials() {
       user: secret.username,
       password: secret.password,
       database: secret.dbname || "bluepeak",
+      port: secret.port || 5432,
     };
   }
   // Local/dev fallback
   return {
     host: process.env.DB_HOST || "localhost",
-    user: process.env.DB_USER || "root",
+    user: process.env.DB_USER || "postgres",
     password: process.env.DB_PASSWORD || "",
     database: process.env.DB_NAME || "bluepeak",
+    port: process.env.DB_PORT || 5432,
   };
 }
 
 async function initDb() {
   const creds = await loadDbCredentials();
-  pool = mysql.createPool({
+  pool = new Pool({
     host: creds.host,
     user: creds.user,
     password: creds.password,
     database: creds.database,
-    waitForConnections: true,
-    connectionLimit: 5,
+    port: creds.port,
+    max: 5,
     ssl: { rejectUnauthorized: true },
   });
 
@@ -57,7 +59,7 @@ async function initDb() {
       value INT NOT NULL DEFAULT 0
     )
   `);
-  await pool.query(`INSERT IGNORE INTO counter (id, value) VALUES (1, 0)`);
+  await pool.query(`INSERT INTO counter (id, value) VALUES (1, 0) ON CONFLICT (id) DO NOTHING`);
 }
 
 app.use(express.json());
@@ -68,8 +70,8 @@ app.get("/health", (req, res) => res.status(200).send("ok"));
 
 app.get("/api/count", async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT value FROM counter WHERE id = 1");
-    res.json({ value: rows[0].value });
+    const result = await pool.query("SELECT value FROM counter WHERE id = 1");
+    res.json({ value: result.rows[0].value });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "db_error" });
@@ -78,9 +80,9 @@ app.get("/api/count", async (req, res) => {
 
 async function adjust(delta, res) {
   try {
-    await pool.query("UPDATE counter SET value = value + ? WHERE id = 1", [delta]);
-    const [rows] = await pool.query("SELECT value FROM counter WHERE id = 1");
-    res.json({ value: rows[0].value });
+    await pool.query("UPDATE counter SET value = value + $1 WHERE id = 1", [delta]);
+    const result = await pool.query("SELECT value FROM counter WHERE id = 1");
+    res.json({ value: result.rows[0].value });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "db_error" });

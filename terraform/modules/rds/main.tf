@@ -29,7 +29,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
     password = random_password.master.result
     dbname   = var.database_name
     host     = aws_rds_cluster.this.endpoint
-    port     = 3306
+    port     = 5432
   })
 }
 
@@ -41,7 +41,7 @@ resource "aws_kms_key" "rds" {
 
 resource "aws_rds_cluster" "this" {
   cluster_identifier      = "${var.name_prefix}-aurora"
-  engine                  = "aurora-mysql"
+  engine                  = "aurora-postgresql"
   engine_mode             = "provisioned"
   engine_version          = var.engine_version
   database_name           = var.database_name
@@ -60,7 +60,7 @@ resource "aws_rds_cluster" "this" {
   final_snapshot_identifier        = var.deletion_protection ? "${var.name_prefix}-final-snapshot" : null
   copy_tags_to_snapshot            = true
   apply_immediately                = var.apply_immediately
-  enabled_cloudwatch_logs_exports  = ["audit", "error", "slowquery"]
+  enabled_cloudwatch_logs_exports  = ["postgresql"]
 
   serverlessv2_scaling_configuration {
     min_capacity = var.min_acu

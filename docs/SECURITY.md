@@ -9,7 +9,7 @@ implemented, layer by layer.
 - DB subnets have **no** route to an Internet Gateway or NAT Gateway at all —
   a compromised app-tier task cannot use the database subnet as an egress path.
 - Security groups are chained least-privilege: Internet → ALB SG (80/443) →
-  App SG (app port, ALB SG only) → DB SG (3306, App SG only). Nothing else in
+  App SG (app port, ALB SG only) → DB SG (5432, App SG only). Nothing else in
   the VPC can reach the app or DB tier directly.
 - VPC Flow Logs are enabled and shipped to CloudWatch Logs for network-level
   audit trail (`ALL` traffic type — accepted and rejected).

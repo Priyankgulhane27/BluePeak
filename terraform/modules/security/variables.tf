@@ -6,7 +6,7 @@ variable "app_port" {
 }
 variable "db_port" {
   type    = number
-  default = 3306
+  default = 5432
 }
 variable "tags" {
   type    = map(string)

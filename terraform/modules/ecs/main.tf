@@ -97,10 +97,8 @@ resource "aws_ecs_task_definition" "app" {
       portMappings = [{ containerPort = var.app_port, protocol = "tcp" }]
       environment = [
         { name = "PORT", value = tostring(var.app_port) },
-        { name = "AWS_REGION", value = var.aws_region }
-      ]
-      secrets = [
-        { name = "DB_SECRET_ARN", valueFrom = var.db_secret_arn }
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "DB_SECRET_ARN", value = var.db_secret_arn }
       ]
       logConfiguration = {
         logDriver = "awslogs"

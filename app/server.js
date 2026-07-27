@@ -2,11 +2,13 @@
  * BluePeak Counter App - Application Tier
  *
  * Serves the static presentation tier (public/) and exposes a small REST API
- * that persists the counter value in the data tier (Aurora PostgreSQL).
+ * that persists the counter value in the data tier (RDS PostgreSQL).
  *
  * DB credentials are pulled from AWS Secrets Manager at startup (never from
  * plaintext env vars in production), falling back to env vars for local dev.
  */
+const fs = require("fs");
+const path = require("path");
 const express = require("express");
 const { Pool } = require("pg");
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
@@ -15,6 +17,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const AWS_REGION = process.env.AWS_REGION || "us-east-1";
 const DB_SECRET_ARN = process.env.DB_SECRET_ARN;
+
+// AWS RDS/Aurora certificates are signed by Amazon's own RDS CA, which is
+// not in Node's default trusted root bundle. This file (downloaded in the
+// Dockerfile from AWS's public truststore) lets us verify the connection
+// properly instead of disabling certificate validation.
+const RDS_CA_PATH = path.join(__dirname, "rds-ca-bundle.pem");
 
 let pool;
 
@@ -50,7 +58,10 @@ async function initDb() {
     database: creds.database,
     port: creds.port,
     max: 5,
-    ssl: { rejectUnauthorized: true },
+    ssl: {
+      rejectUnauthorized: true,
+      ca: fs.readFileSync(RDS_CA_PATH).toString(),
+    },
   });
 
   await pool.query(`

@@ -5,6 +5,11 @@ WORKDIR /usr/src/app
 COPY package.json ./
 RUN npm install --omit=dev
 
+# Download AWS's official public RDS/Aurora CA bundle so the app can verify
+# the database's TLS certificate properly instead of disabling verification.
+# Source: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html
+RUN wget -O /usr/src/app/rds-ca-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+
 COPY server.js ./
 COPY public ./public
 

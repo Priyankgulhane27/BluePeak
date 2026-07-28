@@ -1,7 +1,7 @@
 ############################################
 # Network module
 # 3-tier VPC: public (ALB/NAT), private-app
-# (ECS tasks), private-db (RDS) across N AZs
+# (ECS tasks), private-db (RDS)
 ############################################
 
 data "aws_availability_zones" "available" {
@@ -47,7 +47,7 @@ resource "aws_subnet" "app" {
   tags = merge(var.tags, { Name = "${var.name_prefix}-app-${local.azs[count.index]}", Tier = "private-app" })
 }
 
-# --- Private database subnets (RDS/Aurora) ---
+# --- Private database subnets (RDS) ---
 resource "aws_subnet" "db" {
   count             = local.az_count
   vpc_id            = aws_vpc.this.id

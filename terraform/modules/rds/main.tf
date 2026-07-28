@@ -1,23 +1,8 @@
 ############################################
 # RDS module - data tier
-# Standard (non-Aurora) RDS PostgreSQL, Single-AZ
+# Standard RDS PostgreSQL, Single-AZ
 # by default, in the private DB subnets.
-#
-# NOTE - two design pivots are documented here,
-# both driven by deploying on an AWS Free Plan
-# account (see docs/ARCHITECTURE.md for the full
-# rationale):
-#   1. Aurora MySQL -> Aurora PostgreSQL (Free Plan
-#      only permits aurora-postgresql for Aurora)
-#   2. Aurora PostgreSQL Serverless v2 -> standard
-#      RDS PostgreSQL (Free Plan forces Aurora into
-#      "express configuration", which cannot be
-#      placed inside a customer VPC/private subnet
-#      at all - incompatible with this assignment's
-#      private-network requirement). Standard RDS
-#      has no such restriction: full VPC placement,
-#      custom KMS key, and master username/password
-#      all work exactly as originally designed.
+
 ############################################
 
 resource "aws_db_subnet_group" "this" {
